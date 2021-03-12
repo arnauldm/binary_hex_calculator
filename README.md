@@ -4,7 +4,7 @@
 It's aim is to easily convert decimal / binary / hexadecimal numbers.
 
 To use it :
-`
+````
   $ pc
   Type '?' or 'h' for help
   > h
@@ -31,10 +31,10 @@ To use it :
   > +
    1: 00000003
   > 
-`
+````
 
 To enter and display hexadecimal numbers, type `x` :
-`
+````
    2: 00000010
    1: 00000100
   > x
@@ -47,7 +47,7 @@ To enter and display hexadecimal numbers, type `x` :
    2: 0000 0064  (100)
    1: 0000 0010  (16)
   > 
-`
+````
 
 For binary numbers, type `b` :
 
