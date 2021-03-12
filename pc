@@ -233,7 +233,7 @@ sub parse {
 sub show_stack {
    my $id, $ret;
 
-   print "\n";
+   #print "\n";
 
    if ($mode != 10) {
       print "BASE: $mode\n";
@@ -280,7 +280,7 @@ sub show_help {
    print "binary: and or xor not\n";
    print "others: >>number <<number\n";
    print "d[0-9]+ : set digits (default 8)\n";
-   print "[ENTER]: duplicate last entry\n";
+   print "[ENTER]: duplicate last entry\n\n";
 }
 
 
