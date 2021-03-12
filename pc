@@ -1,0 +1,363 @@
+#!/usr/bin/perl
+
+import Base;
+
+@stack = ();
+$last = "";
+
+$base[2] = new Base(2);
+$base[10] = new Base(10);
+$base[16] = new Base(16);
+
+$mode = 10; # default base
+$digits = 8; # minimum
+
+# --- Initial message ---
+print "Type '?' or 'h' for help\n";
+&show_stack();
+
+# --- Main loop ---
+while (<>) {
+   chomp;
+   &parse($_);
+   &show_stack();
+}
+
+
+#---
+# Parsing functions
+#---
+
+sub parse {
+   $_ = lc shift;
+
+   if (/^$/) { 
+      if (scalar(@stack) >= 1) {
+         my $a = pop @stack;
+         push @stack, $a;
+         push @stack, $a;
+      }
+   }
+
+   # ---
+   # Arithm. operators
+   # ---
+
+   elsif (/^[-+\/*]$/) { 
+      if (scalar(@stack) >= 2) {
+         my $a = pop @stack;
+         my $b = pop @stack;
+         push @stack, eval("$b $_ $a");
+      }
+   }
+
+   elsif (/^(mod|%)$/) { # modulo
+      if (scalar(@stack) >= 2) {
+         my $a = pop @stack;
+         my $b = pop @stack;
+         push @stack, eval("$b % $a");
+      }
+   }
+
+   elsif (/^\^$/) { # exponentation
+      if (scalar(@stack) >= 2) {
+         my $a = pop @stack;
+         my $b = pop @stack;
+         push @stack, ($b ** $a);
+      }
+   }
+
+   elsif (/^sq(rt)?$/i) { # root square
+      if (scalar(@stack) >= 1) {
+         my $a = pop @stack;
+         push @stack, sqrt($a);
+      }
+   }
+
+   # ---
+   # Bitwise operators
+   # ---
+
+   elsif (/^and$/) { 
+      if (scalar(@stack) >= 2) {
+         my $a = pop @stack;
+         my $b = pop @stack;
+         push @stack, eval("$b & $a");
+      }
+   }
+
+   elsif (/^or$/) { 
+      if (scalar(@stack) >= 2) {
+         my $a = pop @stack;
+         my $b = pop @stack;
+         push @stack, eval("$b | $a");
+      }
+   }
+
+   elsif (/^xor$/) { 
+      if (scalar(@stack) >= 2) {
+         my $a = pop @stack;
+         my $b = pop @stack;
+         push @stack, eval("$b ^ $a");
+      }
+   }
+
+   elsif (/^not$/) {
+      if (scalar(@stack) >= 1) {
+         my $a = pop @stack;
+         my $digits_mask = (2 ** $digits) - 1;
+         my $ret = ~$a & $digits_mask;
+         push @stack, $ret;
+      }
+   }
+
+   elsif (/^>> *(\d+)$/) {
+      if (scalar(@stack) >= 1) {
+         my $a = pop @stack;
+         push @stack, eval("$a >> $1");
+      }
+   }
+
+   elsif (/^<< *(\d+)$/) {
+      if (scalar(@stack) >= 1) {
+         my $a = pop @stack;
+         push @stack, eval("$a << $1");
+      }
+   }
+
+   # ---
+   # Stack
+   # ---
+
+   elsif (/^r(ot)?$/i) { #rot
+      if (scalar(@stack) >= 2) {
+         my $a = shift @stack;
+         push @stack, $a;
+      }
+   }
+
+   elsif (/^s(wap)?$/i) { #swap
+      if (scalar(@stack) >= 2) {
+         my $b = pop @stack;
+         my $a = pop @stack;
+         push @stack, $b;
+         push @stack, $a;
+      }
+   }
+
+   elsif (/^d(el)?$/i) { #delete
+      pop @stack;
+   }
+
+   elsif (/^c(lear)?/i) { #clear screen
+      @stack = ();
+   }
+
+   # ---
+   # Modes
+   # ---
+
+   elsif (/^[b]$/i) { # binary mode
+      unless($base[2]) {
+         $base[2] = new Base(2);
+      }
+      if ($mode == 2) {
+         $mode = 10;
+      }
+      else {
+         $mode = 2;
+      }
+   }
+
+   elsif (/^[x]$/i || /^hex/i) { # hex mode
+      unless($base[16]) {
+         $base[16] = new Base(16);
+      }
+      if ($mode == 16) {
+         $mode = 10;
+      }
+      else {
+         $mode = 16;
+      }
+   }
+
+   elsif (/^d(\d+)/i) { # digits
+      $digits = $1;
+   }
+
+   # ---
+   # Misc.
+   # ---
+
+   elsif (/^[?h]$/i) { #help
+      &show_help();
+   }
+
+   elsif (/^[q]$/i) { #quit
+      last;
+   }
+
+   elsif (/^0b(.+)/) { # binary input
+      my $n = $base[2]->from($1);
+      if ($n eq "NaN") {
+         print "Invalid input\n";
+      }
+      else {
+         push @stack, $n;
+      }
+   }
+
+   elsif (/^0x(.+)/) { # hex input
+      my $n = $base[16]->from($1);
+      if ($n eq "NaN") {
+         print "Invalid input\n";
+      }
+      else {
+         push @stack, $n;
+      }
+   }
+
+   else { #new number on stack
+      my $n = $base[$mode]->from($_);
+      if ($n eq "NaN") {
+         print "Invalid input\n";
+      }
+      else {
+         push @stack, $n;
+      }
+   }
+
+}
+
+
+sub show_stack {
+   my $id, $ret;
+
+   print "\n";
+
+   if ($mode != 10) {
+      print "BASE: $mode\n";
+   }
+
+   $id = scalar(@stack);
+
+   foreach my $num (@stack) {
+      $ret = $base[$mode]->to($num);
+
+      while (length ($ret) < $digits) {
+              $ret = "0" . $ret;
+      }
+
+      if ($mode == 2 || $mode == 16) {
+         # In binary / hex, pretty printing values by inserting some ' '
+         $ret = reverse($ret);
+         $ret =~ s/(....)/$1 /g;
+         $ret = reverse($ret);
+         $ret =~ s/^ *//;
+
+         printf "%2d: %s  (%d)\n", $id, $ret, $num;
+      }
+      else {
+         printf "%2d: %s\n", $id, $ret;
+      }
+
+      $id--;
+   }
+   print "> ";
+}
+
+sub show_help {
+   print "[0-9]* : number\n";
+   print "[?h]elp\n";
+   print "[c]lear\n";
+   print "[d]elete\n";
+   print "[q]uit\n";
+   print "[s]wap\n";
+   print "[r]otate\n";
+   print "convert base: he[x]adecimal <-> decimal\n";
+   print "convert base: [b]inary <-> decimal\n";
+   print "operators: + - * / % ^ sq(rt)\n";
+   print "binary: and or xor not\n";
+   print "others: >>number <<number\n";
+   print "d[0-9]+ : set digits (default 8)\n";
+   print "[ENTER]: duplicate last entry\n";
+}
+
+
+
+#--
+package Base;
+
+sub new {
+   my $self = {};
+   shift;
+
+   my $base = shift;
+   my @nums = (0..9,'a'..'f')[0..$base-1];
+   my $index = 0;
+   my %nums = map {$_,$index++} @nums;
+   my $size = 8;
+
+   $self->{base} = $base;
+   $self->{bnums} = \@nums;
+   $self->{nums} = \%nums;
+
+   bless($self);
+   return $self;
+}
+
+# conversion 10 -> $base
+sub to {
+   my $self = shift;
+   my $number = shift;
+   my $sign = "";
+   my $ret = "";
+
+   if ($number =~ s/^-//) {
+      $sign = "-";
+   }
+
+   return "NaN"
+      if ($number =~ m/[^\d\.]/);
+
+   if ($self->{base} == 10) {
+      return $sign . $number || "0";
+   }
+
+   while ($number > 0) {
+      $ret = $self->{bnums}[$number % $self->{base}] . $ret;
+      $number = int($number / $self->{base});
+   }
+
+   return $sign . $ret || "0";
+}
+
+# conversion $base-> 10
+sub from {
+   my $self = shift;
+   my $number = shift;
+   my $sign = "";
+   my $ret = 0;
+
+   if ($number =~ s/^-//) {
+      $sign = "-";
+   }
+
+   if ($self->{base} == 10) {
+      return "NaN"
+         if ($number =~ m/[^\d\.]/);
+      return $sign . $number;
+   }
+
+   for (split //, $number) {
+      $ret *= $self->{base};
+
+      return "NaN"
+         if (!exists $self->{nums}{$_});
+      $ret += $self->{nums}{$_};
+   }
+
+   return $sign . $ret;
+}
+
+1;
