@@ -8,20 +8,12 @@ To use it :
   $ pc
   Type '?' or 'h' for help
   > h
-  [0-9]* : number
-  [?h]elp
-  [c]lear
-  [d]elete
-  [q]uit
-  [s]wap
-  [r]otate
-  convert base: he[x]adecimal <-> decimal
-  convert base: [b]inary <-> decimal
-  operators: + - * / % ^ sq(rt)
-  binary: and or xor not
-  others: >>number <<number
-  d[0-9]+ : set digits (default 8)
-  [ENTER]: duplicate last entry
+  + - * / % ^ sq(rt)
+  and or xor not <<n >>n
+  [?h]elp [q]uit [d]elete [c]lear [s]wap [r]otate
+  he[x] [b]inary
+  pad c: pad with c
+  show n: display n digits
 
   > 1
    1: 00000001
@@ -30,7 +22,7 @@ To use it :
    1: 00000002
   > +
    1: 00000003
-  > 
+  >
 ````
 
 To enter and display hexadecimal numbers, type `x` :
@@ -46,7 +38,7 @@ To enter and display hexadecimal numbers, type `x` :
    3: 0000 000a  (10)
    2: 0000 0064  (100)
    1: 0000 0010  (16)
-  > 
+  >
 ````
 
 For binary numbers, type `b` :

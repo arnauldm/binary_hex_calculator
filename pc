@@ -5,18 +5,17 @@ import Base;
 @stack = ();
 $last = "";
 
-$base[2] = new Base(2);
+$base[2]  = new Base(2);
 $base[10] = new Base(10);
 $base[16] = new Base(16);
+$mode     = 10; # base utilisee
+$digits   = 1;  # minimum de digits
+$padding  = " ";
 
-$mode = 10; # default base
-$digits = 8; # minimum
+# Nombre de bits pour encoder les valeurs
+# par defaut : "" == infinie
 
-# --- Initial message ---
-print "Type '?' or 'h' for help\n";
 &show_stack();
-
-# --- Main loop ---
 while (<>) {
    chomp;
    &parse($_);
@@ -24,81 +23,76 @@ while (<>) {
 }
 
 
-#---
-# Parsing functions
-#---
 
 sub parse {
-   $_ = lc shift;
+   $_ = shift;
 
-   if (/^$/) { 
-      if (scalar(@stack) >= 1) {
-         my $a = pop @stack;
-         push @stack, $a;
-         push @stack, $a;
+   if (/^\s*$/) {
+      if (scalar(@stack)) {
+         push @stack, $stack[$#stack];
       }
    }
 
-   # ---
-   # Arithm. operators
-   # ---
-
-   elsif (/^[-+\/*]$/) { 
+   # - + / % *
+   elsif (/^[-+\/%*]$/) {
       if (scalar(@stack) >= 2) {
          my $a = pop @stack;
          my $b = pop @stack;
          push @stack, eval("$b $_ $a");
+      } else {
+         print "error: missing operand\n";
       }
    }
 
-   elsif (/^(mod|%)$/) { # modulo
-      if (scalar(@stack) >= 2) {
-         my $a = pop @stack;
-         my $b = pop @stack;
-         push @stack, eval("$b % $a");
-      }
-   }
-
-   elsif (/^\^$/) { # exponentation
+   # ^ (exponentation)
+   elsif (/^\^$/) {
       if (scalar(@stack) >= 2) {
          my $a = pop @stack;
          my $b = pop @stack;
          push @stack, ($b ** $a);
+      } else {
+         print "error: missing operand\n";
       }
    }
 
-   elsif (/^sq(rt)?$/i) { # root square
+   # sqrt, sq (root square)
+   elsif (/^sq(rt)?$/i) {
       if (scalar(@stack) >= 1) {
          my $a = pop @stack;
          push @stack, sqrt($a);
+      } else {
+         print "error: missing operand\n";
       }
    }
 
-   # ---
-   # Bitwise operators
-   # ---
-
-   elsif (/^and$/) { 
+   #--- Bitwise operators
+   elsif (/^and$/) {
       if (scalar(@stack) >= 2) {
          my $a = pop @stack;
          my $b = pop @stack;
          push @stack, eval("$b & $a");
+      } else {
+         print "error: missing operand\n";
       }
    }
 
-   elsif (/^or$/) { 
+   elsif (/^or$/) {
       if (scalar(@stack) >= 2) {
          my $a = pop @stack;
          my $b = pop @stack;
          push @stack, eval("$b | $a");
+      } else {
+         print "error: missing operand\n";
       }
    }
 
-   elsif (/^xor$/) { 
+   elsif (/^xor$/) {
       if (scalar(@stack) >= 2) {
          my $a = pop @stack;
          my $b = pop @stack;
          push @stack, eval("$b ^ $a");
+      } else {
+         print "error: missing operand\n";
       }
    }
 
@@ -108,35 +102,29 @@ sub parse {
          my $digits_mask = (2 ** $digits) - 1;
          my $ret = ~$a & $digits_mask;
          push @stack, $ret;
+      } else {
+         print "error: missing operand\n";
       }
    }
 
-   elsif (/^>> *(\d+)$/) {
+   elsif (/^(>>|<<)\s*(\d+)$/) {
       if (scalar(@stack) >= 1) {
          my $a = pop @stack;
-         push @stack, eval("$a >> $1");
+         push @stack, eval("$a $1 $2");
+      } else {
+         print "error: missing operand\n";
       }
    }
 
-   elsif (/^<< *(\d+)$/) {
-      if (scalar(@stack) >= 1) {
-         my $a = pop @stack;
-         push @stack, eval("$a << $1");
-      }
-   }
-
-   # ---
-   # Stack
-   # ---
-
-   elsif (/^r(ot)?$/i) { #rot
+   #--- Stack ---
+   elsif (/^[r]$/i) { #rot
       if (scalar(@stack) >= 2) {
          my $a = shift @stack;
          push @stack, $a;
       }
    }
 
-   elsif (/^s(wap)?$/i) { #swap
+   elsif (/^[s]$/i) { #swap
       if (scalar(@stack) >= 2) {
          my $b = pop @stack;
          my $a = pop @stack;
@@ -145,11 +133,11 @@ sub parse {
       }
    }
 
-   elsif (/^d(el)?$/i) { #delete
+   elsif (/^[d]$/i) { #delete
       pop @stack;
    }
 
-   elsif (/^c(lear)?/i) { #clear screen
+   elsif (/^[c]$/i) { #clear screen
       @stack = ();
    }
 
@@ -158,9 +146,6 @@ sub parse {
    # ---
 
    elsif (/^[b]$/i) { # binary mode
-      unless($base[2]) {
-         $base[2] = new Base(2);
-      }
       if ($mode == 2) {
          $mode = 10;
       }
@@ -169,10 +154,7 @@ sub parse {
       }
    }
 
-   elsif (/^[x]$/i || /^hex/i) { # hex mode
-      unless($base[16]) {
-         $base[16] = new Base(16);
-      }
+   elsif (/^[x]$/i) { # hex mode
       if ($mode == 16) {
          $mode = 10;
       }
@@ -181,7 +163,12 @@ sub parse {
       }
    }
 
-   elsif (/^d(\d+)/i) { # digits
+   elsif (/^pad/i) {
+      ($padding) = $_ =~ m/pad\s*(.)/;
+      print "pad with '$padding'\n";
+   }
+
+   elsif (/^show\s*(\d+)/i) { # digits
       $digits = $1;
    }
 
@@ -197,32 +184,18 @@ sub parse {
       last;
    }
 
-   elsif (/^0b(.+)/) { # binary input
-      my $n = $base[2]->from($1);
+   else { # new number on stack
+      my $n;
+      if (/^0x/) {
+         $n = $base[16]->from(lc $_);
+      } elsif (/^0b/) {
+         $n = $base[2]->from(lc $_);
+      } else {
+         $n = $base[$mode]->from(lc $_);
+      }
       if ($n eq "NaN") {
-         print "Invalid input\n";
-      }
-      else {
-         push @stack, $n;
-      }
-   }
-
-   elsif (/^0x(.+)/) { # hex input
-      my $n = $base[16]->from($1);
-      if ($n eq "NaN") {
-         print "Invalid input\n";
-      }
-      else {
-         push @stack, $n;
-      }
-   }
-
-   else { #new number on stack
-      my $n = $base[$mode]->from($_);
-      if ($n eq "NaN") {
-         print "Invalid input\n";
-      }
-      else {
+         print "NaN";
+      } else {
          push @stack, $n;
       }
    }
@@ -231,56 +204,66 @@ sub parse {
 
 
 sub show_stack {
-   my $id, $ret;
+   my $id, $ret, $maxlen = 0;
 
-   #print "\n";
-
+   print "\n";
    if ($mode != 10) {
       print "BASE: $mode\n";
    }
 
    $id = scalar(@stack);
 
+   #---
+   # 1- get max string length
+   #---
+
    foreach my $num (@stack) {
       $ret = $base[$mode]->to($num);
+      if (length($ret) > $maxlen) {
+         $maxlen = length($ret);
+      }
+   }
 
-      while (length ($ret) < $digits) {
-              $ret = "0" . $ret;
+   if ($maxlen < $digits) {
+      $maxlen = $digits;
+   }
+
+   #---
+   # 2- display numbers
+   #---
+
+   foreach my $num (@stack) {
+      $ret = $base[$mode]->to($num);
+      while (length ($ret) < $maxlen) {
+         $ret = "#" . $ret;
       }
 
       if ($mode == 2 || $mode == 16) {
-         # In binary / hex, pretty printing values by inserting some ' '
          $ret = reverse($ret);
          $ret =~ s/(....)/$1 /g;
          $ret = reverse($ret);
          $ret =~ s/^ *//;
-
-         printf "%2d: %s  (%d)\n", $id, $ret, $num;
-      }
-      else {
+         $ret =~ s/#/$padding/g;
+         printf "%2d: %s (%d)\n", $id, $ret, $num;
+      } else {
+         $ret =~ s/#/$padding/g;
          printf "%2d: %s\n", $id, $ret;
       }
 
       $id--;
    }
+
    print "> ";
 }
 
+
 sub show_help {
-   print "[0-9]* : number\n";
-   print "[?h]elp\n";
-   print "[c]lear\n";
-   print "[d]elete\n";
-   print "[q]uit\n";
-   print "[s]wap\n";
-   print "[r]otate\n";
-   print "convert base: he[x]adecimal <-> decimal\n";
-   print "convert base: [b]inary <-> decimal\n";
-   print "operators: + - * / % ^ sq(rt)\n";
-   print "binary: and or xor not\n";
-   print "others: >>number <<number\n";
-   print "d[0-9]+ : set digits (default 8)\n";
-   print "[ENTER]: duplicate last entry\n\n";
+   print "+ - * / % ^ sq(rt)\n";
+   print "and or xor not <<n >>n\n";
+   print "[?h]elp [q]uit [d]elete [c]lear [s]wap [r]otate\n";
+   print "he[x] [b]inary\n";
+   print "pad c: pad with c\n";
+   print "show n: display n digits";
 }
 
 
@@ -344,16 +327,23 @@ sub from {
    }
 
    if ($self->{base} == 10) {
-      return "NaN"
-         if ($number =~ m/[^\d\.]/);
+      if ($number =~ m/[^\d\.]/) {
+         return "NaN";
+      }
       return $sign . $number;
+   }
+   elsif ($self->{base} == 2) {
+      $number =~ s/^0b//;
+   }
+   elsif ($self->{base} == 16) {
+      $number =~ s/^0x//;
    }
 
    for (split //, $number) {
       $ret *= $self->{base};
-
-      return "NaN"
-         if (!exists $self->{nums}{$_});
+      if (!exists $self->{nums}{$_}) {
+         return "NaN";
+      }
       $ret += $self->{nums}{$_};
    }
 
