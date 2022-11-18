@@ -107,10 +107,11 @@ sub parse {
       }
    }
 
-   elsif (/^(>>|<<)\s*(\d+)$/) {
-      if (scalar(@stack) >= 1) {
+   elsif (/^(>>|<<)$/) {
+      if (scalar(@stack) >= 2) {
          my $a = pop @stack;
-         push @stack, eval("$a $1 $2");
+         my $b = pop @stack;
+         push @stack, eval("$b $1 $a");
       } else {
          print "error: missing operand\n";
       }
@@ -163,14 +164,24 @@ sub parse {
       }
    }
 
+   # padding
    elsif (/^pad/i) {
       ($padding) = $_ =~ m/pad\s*(.)/;
+      if ($padding eq "") {
+         $padding = " ";
+      }
       print "pad with '$padding'\n";
    }
 
-   elsif (/^show\s*(\d+)/i) { # digits
+   # digits to display
+   elsif (/^show\s*(\d+)/i) {
       $digits = $1;
    }
+
+   elsif (/^show/i) {
+      $digits = 1;
+   }
+
 
    # ---
    # Misc.
