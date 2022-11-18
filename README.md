@@ -9,7 +9,7 @@ To use it :
   Type '?' or 'h' for help
   > h
   + - * / % ^ sq(rt)
-  and or xor not <<n >>n
+  and or xor not << >>
   [?h]elp [q]uit [d]elete [c]lear [s]wap [r]otate
   he[x] [b]inary
   pad c: pad with c
