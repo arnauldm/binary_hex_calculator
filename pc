@@ -164,24 +164,14 @@ sub parse {
       }
    }
 
-   # padding
    elsif (/^pad/i) {
       ($padding) = $_ =~ m/pad\s*(.)/;
-      if ($padding eq "") {
-         $padding = " ";
-      }
       print "pad with '$padding'\n";
    }
 
-   # digits to display
-   elsif (/^show\s*(\d+)/i) {
+   elsif (/^show\s*(\d+)/i) { # digits
       $digits = $1;
    }
-
-   elsif (/^show/i) {
-      $digits = 1;
-   }
-
 
    # ---
    # Misc.
